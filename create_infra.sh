@@ -62,7 +62,7 @@ az storage container create  --name training-assets-x --account-name $storageAcc
 az storage container create  --name recognize-out-image --account-name $storageAccountName --auth-mode login 
 
 # Create a V3 Function App
-az functionapp create  --name $functionAppName   --storage-account $storageAccountName   --consumption-plan-location $(location)   --resource-group $resourceGroupName --functions-version 3
+az functionapp create  --name $functionAppName   --storage-account $storageAccountName   --consumption-plan-location $location   --resource-group $resourceGroupName --functions-version 3
 # Create a database server (could we use serverless?)
 az sql server create -n $dbServerName -g $resourceGroupName -l $location -u $adminLogin -p $password
 # Configure a firewall rule for the server
