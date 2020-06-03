@@ -3,3 +3,8 @@
 ################################################################################
 
 /placebo/ModelTrainer/bin/Debug/netcoreapp3.1
+/placebo/ModelTrainer/obj
+/placebo/ModelTrainer/appsettings.local.json
+/placebo/Placebo.Functions.Models/bin/Debug/netstandard2.0
+/placebo/Placebo.Functions.Models/obj
+/placebo/.vs

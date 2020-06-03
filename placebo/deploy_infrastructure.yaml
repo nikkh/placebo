@@ -1,0 +1,78 @@
+trigger: none
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+- group: margin-survey-common
+
+steps:
+
+# This is temporary until Azure DevOps pipelines has Azure CLI 2.1.0 installed 
+# 2.1.0 or above needed for V3 functiona app creation
+#- task: Bash@3
+#  inputs:
+#    targetType: 'inline'
+#    script: 'curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash'
+
+# Create the infrastructure
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: '$(serviceConnectionName)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      storageAccountName="$(applicationName)$RANDOM"
+      stagingStorageAccountName="${storageAccountName}staging"
+      resourceGroupName="$(applicationName)-rg"
+      functionAppName="$(applicationName)-func"
+      dbServerName="$(applicationName)-db-server"
+      databaseName="$(applicationName)-db"
+       # Create a resource group
+      echo "storageAccountName=$storageAccountName"
+      echo "stagingStorageAccountName=$stagingStorageAccountName"
+      echo "resourceGroupName=$resourceGroupName"
+      echo "functionAppName=$functionAppName"
+      echo "dbServerName=$dbServerName"
+      echo "databaseName=$databaseName"
+      az group create -n $resourceGroupName -l $(location) --tags "PendingDelete=$(PendingDelete)"
+      # Create a storage account
+      az storage account create  --name $storageAccountName  --location $(location)  --resource-group $resourceGroupName  --sku Standard_LRS
+      # Create a staging storage account
+      az storage account create  --name $stagingStorageAccountName  --location $(location)  --resource-group $resourceGroupName  --sku Standard_LRS
+      # Create a queue in staging storage account
+      az storage queue create --name incoming --account-name $stagingStorageAccountName
+      #Create an event grid subscription so that any time a blob is added anywhere on the storage account a message will appear on the queue
+      stagingStorageAccountId=$(az storage account show -n $stagingStorageAccountName --query id -o tsv)
+      az eventgrid event-subscription create --name mar-sur-incoming-doc --source-resource-id $stagingStorageAccountId --endpoint-type storagequeue --endpoint $stagingStorageAccountId/queueservices/default/queues/incoming --included-event-types Microsoft.Storage.BlobCreated
+      # Create the incoming containers in the staging account
+      az storage container create  --name drop-aah --account-name $stagingStorageAccountName --auth-mode login
+      az storage container create  --name drop-alliance --account-name $stagingStorageAccountName --auth-mode login
+      az storage container create  --name drop-bands --account-name $stagingStorageAccountName --auth-mode login
+      az storage container create  --name drop-deyorks --account-name $stagingStorageAccountName --auth-mode login
+      az storage container create  --name drop-phoenix --account-name $stagingStorageAccountName --auth-mode login
+      az storage container create  --name drop-sigma --account-name $stagingStorageAccountName --auth-mode login
+      # Create the storage containers for processing the documents
+      az storage container create  --name assets-processing-completed --account-name $storageAccountName --auth-mode login
+      az storage container create  --name process-exceptions --account-name $storageAccountName --auth-mode login
+      az storage container create  --name process-in-json --account-name $storageAccountName --auth-mode login
+      az storage container create  --name recognize-exceptions --account-name $storageAccountName --auth-mode login
+      az storage container create  --name recognize-in-image --account-name $storageAccountName --auth-mode login
+      az storage container create  --name training-requests --account-name $storageAccountName --auth-mode login
+      az storage container create  --name training-assets-x --account-name $storageAccountName --auth-mode login
+      az storage container create  --name results-pipeline-test --account-name $storageAccountName --auth-mode login
+      # this next one is temporary
+      az storage container create  --name recognize-out-image --account-name $storageAccountName --auth-mode login 
+      
+      # Create a V3 Function App
+      az functionapp create  --name $functionAppName   --storage-account $storageAccountName   --consumption-plan-location $(location)   --resource-group $resourceGroupName --functions-version 3
+      # Create a database server (could we use serverless?)
+      az sql server create -n $dbServerName -g $resourceGroupName -l $(location) -u $(adminLogin) -p $(password)
+      # Configure a firewall rule for the server
+      az sql server firewall-rule create -g $resourceGroupName -s $dbServerName -n DevOpsDefault --start-ip-address "0.0.0.0" --end-ip-address "0.0.0.0"
+      # Create a sql db
+      az sql db create -g $resourceGroupName -s $dbServerName -n $databaseName --service-objective S0
+      echo 'WARNING! - Temporary manual step!'
+      echo set variables for the storageConnectionString and dbConnectionString in the deploy_functions pipeline definition
+    failOnStandardError: false
+
+

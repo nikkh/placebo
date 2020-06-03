@@ -1,0 +1,29 @@
+﻿{
+  "ProcessingContext": {
+    "InboundDocumentContainer": "process-in-json",
+    "ExceptionContainer": "process-exceptions",
+    "ProcessingCompleteContainer": "assets-processing-completed"
+  },
+  "RoutingContext": {
+    "TargetContainer": "recognize-in-image"
+  },
+  "RecognizingContext": {
+    "RecognizerServiceBaseUrl": "https://marsur-fr.cognitiveservices.azure.com/",
+    "OutboundJsonContainer": "process-in-json",
+    "InboundImageContainer": "recognize-in-image",
+    "ExceptionContainer": "recognize-exceptions",
+    "ProcessingCompleteContainer": "assets-processing-completed",
+    "MaxRetries": 15,
+    "Models": {
+      "bands": "bfca9616-1fa7-4f57-b94a-a9d9f729ca37",
+      "alliance": "2c67c2e8-6ab2-4bf3-90e4-19af3f88d04d",
+      "deyorks": "18802e06-8ecb-4153-b76e-763dbc860198",
+      "phoenix": "74fe8039-128b-4e79-8850-025bebafe419",
+      "sigma": "289368f7-b82e-41a2-830c-f4d15fe4d0ff"
+    }
+  },
+  "TrainingContext": {
+    "RecognizerServiceBaseUrl": "https://marsur-fr.cognitiveservices.azure.com/",
+    "MaxRetries": 15
+  }
+}
