@@ -12,11 +12,7 @@ namespace Placebo.Functions.Contexts
         public string ExceptionContainer { get; set; }
         public int MaxRetries { get; set; }
         public string ProcessingCompleteContainer { get; set; }
-        public Dictionary<string, string> Models
-        {
-            get;
-            set;
-        }
+        
     }
 
     
