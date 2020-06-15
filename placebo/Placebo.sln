@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\create_infra.sh = ..\create_infra.sh
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Placebo.Trainer", "Placebo.Trainer\Placebo.Trainer.csproj", "{005ED63B-42F9-4506-B5D0-0D3D715BF73A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{B4DB40AC-C28C-4981-9571-448075DABCB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B4DB40AC-C28C-4981-9571-448075DABCB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B4DB40AC-C28C-4981-9571-448075DABCB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{005ED63B-42F9-4506-B5D0-0D3D715BF73A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{005ED63B-42F9-4506-B5D0-0D3D715BF73A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{005ED63B-42F9-4506-B5D0-0D3D715BF73A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{005ED63B-42F9-4506-B5D0-0D3D715BF73A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
