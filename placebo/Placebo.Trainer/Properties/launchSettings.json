@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Placebo.Trainer": {
+      "commandName": "Project",
+      "commandLineArgs": "--documentFormat alliance  --labellingContainerSasUrl https://marsur10983.blob.core.windows.net/training-requests?sp=rl&st=2020-06-15T07:20:00Z&se=2020-06-16T09:20:46Z&sv=2019-10-10&sr=c&sig=mDY0EPcq8nU4CbW7HAAULPsVvtD1uuiz4g2n46oux6Y%3D --blobContainerFolder alliance"
+    }
+  }
+}
