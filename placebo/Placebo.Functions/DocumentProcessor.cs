@@ -13,6 +13,7 @@ using Newtonsoft.Json.Linq;
 using Placebo.Functions.Contexts;
 using System.Collections.Generic;
 using Microsoft.Azure.Cosmos;
+using Newtonsoft.Json;
 
 namespace Placebo.Functions
 {
@@ -21,19 +22,21 @@ namespace Placebo.Functions
         private readonly IConfiguration _config;
         private readonly TelemetryClient _telemetryClient;
         private readonly string _dbConnectionString;
+        private readonly ServiceBusSender _serviceBusSender;
         private ProcessingContext _processingContext;
         const string FUNCTION_NAME = "[DocumentProcessor]";
    
-        public DocumentProcessor(IConfiguration config, TelemetryConfiguration telemetryConfig, ProcessingContext processingContext)
+        public DocumentProcessor(IConfiguration config, TelemetryConfiguration telemetryConfig, ProcessingContext processingContext, ServiceBusSender serviceBusSender)
         {
             _config = config;
             _dbConnectionString = _config.GetConnectionString("PlaceboDatabase");
             _processingContext = processingContext;
             _telemetryClient = new TelemetryClient(telemetryConfig);
+            _serviceBusSender = serviceBusSender;
         }
 
         [FunctionName("DocumentProcessor")]
-        public async Task Run([BlobTrigger("process-in-json/{name}", Connection = "IncomingConnection")]Stream incomingBlobStream, string name,  ILogger log, ExecutionContext context)
+        public async Task Run([BlobTrigger("process-in-json/{name}", Connection = "IncomingConnection")]Stream incomingBlobStream, string name,  ILogger log)
         {
             log.LogInformation($"{FUNCTION_NAME} function was triggered by receipt of blob - Name:{name} Size: {incomingBlobStream.Length} Bytes Container: {_processingContext.InboundDocumentContainer}");
             string thumbprint = "";
@@ -213,53 +216,13 @@ namespace Placebo.Functions
 
         private async Task PersistToCosmos(Document document, ILogger log)
         {
-            // keep everything relating to cosmos here ... going to split persistence to a new function at some point.
-            log.LogInformation($"{FUNCTION_NAME} - Saving document {document.DocumentNumber} to Cosmos DB");
-            string endpoint = _processingContext.CosmosEndPointUrl;
-            if (string.IsNullOrEmpty(endpoint))
-            {
-                throw new ArgumentNullException("Please specify a valid endpoint in the appSettings.json");
-            }
-
-            string authKey = _processingContext.CosmosAuthorizationKey;
-            if (string.IsNullOrEmpty(authKey) || string.Equals(authKey, "Super secret key"))
-            {
-                throw new ArgumentException("Please specify a valid AuthorizationKey in the appSettings.json");
-            }
-
-            string databaseId = _processingContext.CosmosDatabaseId;
-            if (string.IsNullOrEmpty(databaseId))
-            {
-                throw new ArgumentException("Please specify a valid Cosmos Database Id in the appSettings.json");
-            }
-
-            string containerId = _processingContext.CosmosContainerId;
-            if (string.IsNullOrEmpty(databaseId))
-            {
-                throw new ArgumentException("Please specify a valid Cosmos Database Container Id in the appSettings.json");
-            }
-
-            using (CosmosClient client = new CosmosClient(endpoint, authKey))
-            {
-               
-                Database database = await client.CreateDatabaseIfNotExistsAsync(databaseId);
-                ContainerProperties containerProperties = new ContainerProperties(containerId, partitionKeyPath: "/Account");
-                Container container = await database.CreateContainerIfNotExistsAsync(
-                    containerProperties,
-                    throughput: 400);
-                _ = await container.CreateItemAsync(document, new PartitionKey(document.Account),
-                new ItemRequestOptions()
-                {
-                    EnableContentResponseOnWrite = false
-                });
-            }
-            
-           
-
-            
+            var payload = JsonConvert.SerializeObject(document); ;
+            var messageModel = new MessageModel();
+            messageModel.Payload = payload;
+            messageModel.TraceGuid = document.UniqueRunIdentifier;
+            messageModel.Queue = _processingContext.CosmosQueueName;
+            await _serviceBusSender.SendMessage(messageModel);
         }
-
-      
 
         #region Document Parsing
         private static bool AnyElementsPresentForThisLine(JObject nittyGritty, string lineNumber, string[] elements)

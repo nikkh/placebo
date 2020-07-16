@@ -4,10 +4,7 @@
     "ExceptionContainer": "process-exceptions",
     "ProcessingCompleteContainer": "assets-processing-completed",
     "PersistToCosmos": "true",
-    "CosmosEndPointUrl": "https://placebo.documents.azure.com:443/",
-    "CosmosAuthorizationKey": "4HR33BT3gdtG5ZWeo3hpTHool3tYSokw1nCxRa28gzdAFSBlltKk7U6kHir3m7P1458eE4gY3ImMmg7KBv9SIw==",
-    "CosmosDatabaseId": "TestDatabase",
-    "CosmosContainerId": "TestContainer"
+    "CosmosQueueName": "to-cosmos"
   },
   "RoutingContext": {
     "TargetContainer": "recognize-in-image"
@@ -23,5 +20,11 @@
   "TrainingContext": {
     "RecognizerServiceBaseUrl": "https://marsur-fr.cognitiveservices.azure.com/",
     "MaxRetries": 15
+  },
+  "CosmosPersistorContext": {
+    "CosmosEndPointUrl": "https://placebo.documents.azure.com:443/",
+    "CosmosAuthorizationKey": "4HR33BT3gdtG5ZWeo3hpTHool3tYSokw1nCxRa28gzdAFSBlltKk7U6kHir3m7P1458eE4gY3ImMmg7KBv9SIw==",
+    "CosmosDatabaseId": "TestDatabase",
+    "CosmosContainerId": "TestContainer"
   }
 }
