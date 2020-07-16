@@ -12,7 +12,7 @@ namespace Placebo.Functions.Models
         public const string InvoiceNumber = "Inv";
         public const string Account = "AccountNo";
         public const string LineItemPrefix = "Drug";
-        public const int MAX_INVOICE_LINES = 50;
+        public const int MAX_DOCUMENT_LINES = 50;
         public const string QuantityPrefix = "Qty";
         public const string UnitPricePrefix = "Unit";
         public const string NetPricePrefix = "Net";
@@ -27,6 +27,7 @@ namespace Placebo.Functions.Models
         public const string RecognizedExtension = "-recognized.json";
         public const string ExceptionExtension = "-exception.json";
         public const string InvoiceExtension = "-invoice.json";
+        public const string DocumentExtension = "-document.json";
         public const string OcpApimSubscriptionKey = "Ocp-Apim-Subscription-Key";
         public const string FormRecognizerApiPath = "formrecognizer/v2.0-preview/custom/models";
         public const string FormRecognizerAnalyzeVerb = "analyze";

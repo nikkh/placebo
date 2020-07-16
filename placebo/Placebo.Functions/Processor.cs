@@ -33,7 +33,7 @@ namespace Placebo.Functions
         }
 
         [FunctionName("Processor")]
-        public async Task Run([BlobTrigger("process-in-json/{name}", Connection = "IncomingConnection")]Stream incomingBlobStream, string name,  ILogger log, ExecutionContext context)
+        public async Task Run([BlobTrigger("disabled-process-in-json/{name}", Connection = "IncomingConnection")]Stream incomingBlobStream, string name,  ILogger log, ExecutionContext context)
         {
             log.LogInformation($"{FUNCTION_NAME} function was triggered by receipt of blob - Name:{name} Size: {incomingBlobStream.Length} Bytes Container: {_processingContext.InboundDocumentContainer}");
             string thumbprint = "";
@@ -140,7 +140,7 @@ namespace Placebo.Functions
 
                 // Lines
 
-                for (int i = 1; i < ParsingConstants.MAX_INVOICE_LINES; i++)
+                for (int i = 1; i < ParsingConstants.MAX_DOCUMENT_LINES; i++)
                 {
                     var lineNumber = i.ToString("D2");
                     string lineItemId = $"{ParsingConstants.LineItemPrefix}{lineNumber}";

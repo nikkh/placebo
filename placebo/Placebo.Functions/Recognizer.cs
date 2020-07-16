@@ -106,9 +106,10 @@ namespace Placebo.Functions
                         contentType = "image/tiff";
                         break;
                     default:
-                        Exception e = new Exception($"{FUNCTION_NAME} Incoming document is {name} is in an unsupported format {recognizerName.ImageType}. Supported type are jpeg, jpg, tiff and png");
-                        throw e;
-
+                        {
+                            Exception e = new Exception($"{FUNCTION_NAME} Incoming document is {name} is in an unsupported format {recognizerName.ImageType}. Supported type are jpeg, jpg, tiff and png");
+                            throw e;
+                        }
                 }
                 string _apiKey = _config["RecognizerApiKey"];
                 string _baseUrl = _recognizingContext.RecognizerServiceBaseUrl;
@@ -225,7 +226,7 @@ namespace Placebo.Functions
 
         private DocumentFormatModel GetModelIdByDocumentFormat(string documentFormat)
         {
-            var documentFormatioModel = new DocumentFormatModel();
+            var documentFormatModel = new DocumentFormatModel();
             using (SqlConnection connection = new SqlConnection(_dbConnectionString))
             {
                 connection.Open();
@@ -243,11 +244,11 @@ namespace Placebo.Functions
                     {
                         while (reader.Read())
                         {
-                            documentFormatioModel.DocumentFormat = Convert.ToString(reader["DocumentFormat"]);
-                            documentFormatioModel.ModelId = Convert.ToString(reader["ModelId"]);
-                            documentFormatioModel.ModelVersion = Convert.ToInt32(reader["ModelVersion"]);
-                            documentFormatioModel.UpdatedDateTime = Convert.ToDateTime(reader["UpdatedDateTime"]);
-                            documentFormatioModel.AverageModelAccuracy = Convert.ToDecimal(reader["AverageModelAccuracy"]);
+                            documentFormatModel.DocumentFormat = Convert.ToString(reader["DocumentFormat"]);
+                            documentFormatModel.ModelId = Convert.ToString(reader["ModelId"]);
+                            documentFormatModel.ModelVersion = Convert.ToInt32(reader["ModelVersion"]);
+                            documentFormatModel.UpdatedDateTime = Convert.ToDateTime(reader["UpdatedDateTime"]);
+                            documentFormatModel.AverageModelAccuracy = Convert.ToDecimal(reader["AverageModelAccuracy"]);
 
 
                         }
@@ -263,7 +264,7 @@ namespace Placebo.Functions
 
                 }
                 finally { }
-                return documentFormatioModel;
+                return documentFormatModel;
             }
         }
     }

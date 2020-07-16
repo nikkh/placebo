@@ -2,13 +2,18 @@
   "ProcessingContext": {
     "InboundDocumentContainer": "process-in-json",
     "ExceptionContainer": "process-exceptions",
-    "ProcessingCompleteContainer": "assets-processing-completed"
+    "ProcessingCompleteContainer": "assets-processing-completed",
+    "PersistToCosmos": "true",
+    "CosmosEndPointUrl": "https://placebo.documents.azure.com:443/",
+    "CosmosAuthorizationKey": "4HR33BT3gdtG5ZWeo3hpTHool3tYSokw1nCxRa28gzdAFSBlltKk7U6kHir3m7P1458eE4gY3ImMmg7KBv9SIw==",
+    "CosmosDatabaseId": "TestDatabase",
+    "CosmosContainerId": "TestContainer"
   },
   "RoutingContext": {
     "TargetContainer": "recognize-in-image"
   },
   "RecognizingContext": {
-    "RecognizerServiceBaseUrl": "https://<<your service>>.cognitiveservices.azure.com/",
+    "RecognizerServiceBaseUrl": "https://marsur-fr.cognitiveservices.azure.com/",
     "OutboundJsonContainer": "process-in-json",
     "InboundImageContainer": "recognize-in-image",
     "ExceptionContainer": "recognize-exceptions",
@@ -16,7 +21,7 @@
     "MaxRetries": 15
   },
   "TrainingContext": {
-    "RecognizerServiceBaseUrl": "https://<<your service>>.cognitiveservices.azure.com/",
+    "RecognizerServiceBaseUrl": "https://marsur-fr.cognitiveservices.azure.com/",
     "MaxRetries": 15
   }
 }

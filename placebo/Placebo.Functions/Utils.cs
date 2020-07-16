@@ -287,6 +287,37 @@ namespace Placebo.Functions
 
         }
 
+        public async Task SaveDocumentAsync(Document document, string containerName, string blobName, IDictionary<string, string> metadata = null)
+        {
+            string methodName = "SaveDocumentAsync";
+            string _loggingPrefix = $"{_functionName}-{ methodName}";
+            _log.LogDebug($"{_loggingPrefix}: Saving Document {containerName}/{blobName}");
+
+            CloudStorageAccount storageAccount = GetStorageAccount(_mainStorageConnectionString);
+            CloudBlobClient blobClient;
+            CloudBlobContainer targetContainer;
+            try
+            {
+                blobClient = storageAccount.CreateCloudBlobClient();
+                targetContainer = blobClient.GetContainerReference(containerName);
+                var outputBlob = targetContainer.GetBlockBlobReference(blobName);
+                if (metadata != null)
+                {
+                    outputBlob = await SetBlobMetadataAsync(outputBlob, metadata);
+                }
+                await outputBlob.UploadTextAsync(document.ToJsonString());
+                _log.LogInformation($"{_loggingPrefix} The document produced was serialized and saved (in Json format) to {blobName} in container {containerName}");
+            }
+            catch (Exception e)
+            {
+                _log.LogDebug($"{_loggingPrefix} targetContainer={containerName}");
+                _log.LogDebug($"{_loggingPrefix} inputBlobName={blobName}");
+                _log.LogError($"{_loggingPrefix} Error saving serialized document output to container {containerName}.  Exception Message: {e.Message}). Function will terminate");
+                throw;
+            }
+
+        }
+
         internal async Task<string> GetBlobMD5(string blobName, string containerName)
         {
             string methodName = "GetBlobMD5";
