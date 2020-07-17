@@ -32,7 +32,8 @@ namespace Placebo.Functions
             builder.Services.AddSingleton(configuration.GetSection("RoutingContext").Get<RoutingContext>());
             builder.Services.AddSingleton(configuration.GetSection("RecognizingContext").Get<RecognizingContext>()); 
             builder.Services.AddSingleton(configuration.GetSection("TrainingContext").Get<TrainingContext>());
-            builder.Services.AddSingleton(configuration.GetSection("CosmosPersistorContext").Get<CosmosPersistorContext>());
+            builder.Services.AddSingleton(configuration.GetSection("CosmosContext").Get<CosmosContext>());
+            builder.Services.AddSingleton(configuration.GetSection("SQLContext").Get<SQLContext>());
             builder.Services.AddScoped<ServiceBusSender>();
         }
     }

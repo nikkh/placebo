@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Placebo.Functions.Contexts
 {
-    public class CosmosPersistorContext 
+    public class CosmosContext 
     {
         public string CosmosEndPointUrl { get;  set; }
         public string CosmosAuthorizationKey { get;  set; }

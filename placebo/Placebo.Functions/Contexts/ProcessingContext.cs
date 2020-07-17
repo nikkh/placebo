@@ -12,7 +12,6 @@ namespace Placebo.Functions.Contexts
         public string InvestigateContainer { get; set; }
         public string ExceptionContainer { get; set; }
         public string ProcessingCompleteContainer { get; set; }
-        public string PersistToCosmos { get; set; }
-        public string CosmosQueueName { get; set; }
+        public string PersistenceQueueName { get; set; }
     }
 }

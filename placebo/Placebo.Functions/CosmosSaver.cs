@@ -14,17 +14,17 @@ using Placebo.Functions.Models;
 
 namespace Placebo.Functions
 {
-    public class CosmosPersistor
+    public class CosmosSaver
     {
         private readonly IConfiguration _config;
         private readonly TelemetryClient _telemetryClient;
         private readonly string _databaseId;
         private readonly string _containerId;
         private readonly CosmosClient _cosmosClient;
-        private CosmosPersistorContext _persistingContext;
-        const string FUNCTION_NAME = "[CosmosPersistor]";
+        private CosmosContext _persistingContext;
+        const string FUNCTION_NAME = "[CosmosSaver]";
 
-        public CosmosPersistor(IConfiguration config, TelemetryConfiguration telemetryConfig, CosmosPersistorContext persistingContext)
+        public CosmosSaver(IConfiguration config, TelemetryConfiguration telemetryConfig, CosmosContext persistingContext)
         {
             _config = config;
             _persistingContext = persistingContext;

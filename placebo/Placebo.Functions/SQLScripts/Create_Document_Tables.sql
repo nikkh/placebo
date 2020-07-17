@@ -1,5 +1,5 @@
 ﻿IF  NOT EXISTS (SELECT * FROM sys.objects 
-WHERE object_id = OBJECT_ID(N'[dbo].[Invoice]') AND type in (N'U'))
+WHERE object_id = OBJECT_ID(N'[dbo].[Document]') AND type in (N'U'))
 BEGIN
 CREATE TABLE [dbo].[Document](
 	[Id] [int] IDENTITY(1,1) NOT NULL,
