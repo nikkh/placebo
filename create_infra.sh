@@ -9,11 +9,6 @@ if [ -z "$LOCATION" ]; then
     export LOCATION=uksouth
 fi
 
-if [ -z "$ADMIN_PASSWORD" ]; then 
-    echo "ADMIN_PASSWORD must contain a valid SQL Server password"
-    exit
-fi
-
 applicationName=$APPLICATION_NAME
 storageAccountName="$applicationName$RANDOM"
 stagingStorageAccountName="$storageAccountName"staging
@@ -22,8 +17,11 @@ functionAppName="$applicationName-func"
 dbServerName="$applicationName-db-server"
 databaseName="$applicationName-db"
 evtgrdsubName="$applicationName-evt-sub"
+svcbusnsName="$applicationName-ns"
+cosmosDbName="$applicationName-cdb"
+frName="$applicationName-fr"
 adminLogin="$applicationName-admin"
-password=$ADMIN_PASSWORD
+password="Boldmere$RANDOM@@@"
 location=$LOCATION
 # Create a resource group
 echo "storageAccountName=$storageAccountName"
@@ -33,12 +31,17 @@ echo "functionAppName=$functionAppName"
 echo "dbServerName=$dbServerName"
 echo "databaseName=$databaseName"
 echo "evtgrdsubName=$evtgrdsubName"
+echo "svcbusnsName=$svcbusnsName"
+echo "cosmosDbName=$cosmosDbName"
+echo "frName=$frName"
 echo "adminLogin=$adminLogin"
 echo "password=$password"
 echo "location=$location"
-echo -e "\e[33m"
-read -n 1 -r -s -p $"Press Enter to create the envrionment or Ctrl-C to quit and change environment variables: "
-echo -e "\e[0m"
+RED='\033[1;31m'
+NC='\033[0m'
+echo -e ${RED} 
+read -n 1 -r -s -p $"Press Enter to create the envrionment or Ctrl-C to quit and change environment variables"
+echo -e ${NC} 
 
 az group create -n $resourceGroupName -l $location 
 # Create a storage account
@@ -58,9 +61,8 @@ az storage container create  --name process-in-json --account-name $storageAccou
 az storage container create  --name recognize-exceptions --account-name $storageAccountName --auth-mode login
 az storage container create  --name recognize-in-image --account-name $storageAccountName --auth-mode login
 az storage container create  --name training-requests --account-name $storageAccountName --auth-mode login
-az storage container create  --name training-assets-x --account-name $storageAccountName --auth-mode login
 az storage container create  --name recognize-out-image --account-name $storageAccountName --auth-mode login 
-
+az storage queue create --name training --account-name $storageAccountName
 # Create a V3 Function App
 az functionapp create  --name $functionAppName   --storage-account $storageAccountName   --consumption-plan-location $location   --resource-group $resourceGroupName --functions-version 3
 # Create a database server (could we use serverless?)
@@ -69,3 +71,38 @@ az sql server create -n $dbServerName -g $resourceGroupName -l $location -u $adm
 az sql server firewall-rule create -g $resourceGroupName -s $dbServerName -n DevOpsDefault --start-ip-address "0.0.0.0" --end-ip-address "0.0.0.0"
 # Create a sql db
 az sql db create -g $resourceGroupName -s $dbServerName -n $databaseName --service-objective S0
+# Create a Cosmos DB
+az cosmosdb create --name $cosmosDbName -g $resourceGroupName --locations regionName=$location
+# Create a Service Bus Namespace
+az servicebus namespace create -g $resourceGroupName --n $svcbusnsName --location $location
+az servicebus queue create -g $resourceGroupName --namespace-name $svcbusnsName --name to-cosmos
+az servicebus queue create -g $resourceGroupName --namespace-name $svcbusnsName --name to-sql
+az servicebus queue create -g $resourceGroupName --namespace-name $svcbusnsName --name recognizer-queue
+az servicebus queue create -g $resourceGroupName --namespace-name $svcbusnsName --name processor-queue
+az cognitiveservices account create --kind FormRecognizer --location $location --name $frName -g $resourceGroupName --sku S0 
+
+baseDbConnectionString=$(az sql db show-connection-string -c ado.net -s $dbServerName -n $databaseName -o tsv)
+dbConnectionStringWithUser="${baseDbConnectionString/<username>/$adminLogin}"
+placeboDatabaseConnectionString="${dbConnectionStringWithUser/<password>/$password}"
+
+storageAccountConnectionString=$(az storage account show-connection-string -g $resourceGroupName -n $storageAccountName -o tsv)
+stagingStorageAccountConnectionString=$(az storage account show-connection-string -g $resourceGroupName -n $stagingStorageAccountName -o tsv)
+frEndpoint=$(az cognitiveservices account show -g $resourceGroupName -n $frName --query properties.endpoint -o tsv)
+recognizerApiKey=$(az cognitiveservices account keys list -g $resourceGroupName -n $frName --query 'key1' -o tsv)
+cosmosEndpointUrl=$(az cosmosdb show -g lotus-rg -n lotus --query 'documentEndpoint' -o tsv)
+cosmosAuthorizationKey=$(az cosmosdb keys list -n $cosmosDbName -g $resourceGroupName --query 'primaryMasterKey' -o tsv)
+serviceBusConnectionString=$(az servicebus namespace authorization-rule keys list -g $resourceGroupName --namespace-name $svcbusnsName -n RootManageSharedAccessKey --query 'primaryConnectionString' -o tsv)
+echo "********************************"
+echo "RecognizerServiceBaseUrl: $frEndpoint"
+echo "IncomingConnection: $storageAccountConnectionString"
+echo "PlaceboStaging: $stagingStorageAccountConnectionString"
+echo "RecognizerApiKey: $recognizerApiKey"
+echo "ServiceBusConnectionString: $serviceBusConnectionString"
+echo "CosmosEndPointUrl: $cosmosEndpointUrl"
+echo "CosmosAuthorizationKey: $cosmosAuthorizationKey"
+echo "PlaceboDatabase: $placeboDatabaseConnectionString"
+echo "********************************"
+echo "Writing connections strings and secrets to $functionAppName configuration"
+az webapp config appsettings set -g $resourceGroupName -n $functionAppName --settings IncomingConnection=$storageAccountConnectionString PlaceboStaging=$stagingStorageAccountConnectionString RecognizerApiKey=$recognizerApiKey ServiceBusConnectionString=$serviceBusConnectionString CosmosAuthorizationKey=$cosmosAuthorizationKey RecognizerServiceBaseUrl=$frEndpoint CosmosEndPointUrl=$cosmosEndpointUrl
+az webapp config connection-string set -t SqlServer -n $functionAppName -g $resourceGroupName --settings "PlaceboDatabase=$placeboDatabaseConnectionString"
+echo -e "The random password generated for ${RED}$adminLogin${NC}, password was ${RED}$password${NC}"

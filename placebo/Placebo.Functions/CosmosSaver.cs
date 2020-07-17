@@ -21,23 +21,27 @@ namespace Placebo.Functions
         private readonly string _databaseId;
         private readonly string _containerId;
         private readonly CosmosClient _cosmosClient;
+        private readonly string  _cosmosAuthorizationKey;
+        private readonly string _cosmosEndPointUrl;
         private CosmosContext _persistingContext;
         const string FUNCTION_NAME = "[CosmosSaver]";
 
-        public CosmosSaver(IConfiguration config, TelemetryConfiguration telemetryConfig, CosmosContext persistingContext)
+        public CosmosSaver(IConfiguration config, TelemetryConfiguration telemetryConfig, CosmosContext cosmosContext)
         {
             _config = config;
-            _persistingContext = persistingContext;
+            _persistingContext = cosmosContext;
+            _cosmosAuthorizationKey = _config["CosmosAuthorizationKey"];
             _telemetryClient = new TelemetryClient(telemetryConfig);
+            _cosmosEndPointUrl = _config["CosmosEndPointUrl"];
             if (_cosmosClient == null)
             {
-                string endpoint = _persistingContext.CosmosEndPointUrl;
+                string endpoint = _cosmosEndPointUrl;
                 if (string.IsNullOrEmpty(endpoint))
                 {
                     throw new ArgumentNullException("Please specify a valid endpoint in the appSettings.json");
                 }
 
-                string authKey = _persistingContext.CosmosAuthorizationKey;
+                string authKey = _cosmosAuthorizationKey;
                 if (string.IsNullOrEmpty(authKey) || string.Equals(authKey, "Super secret key"))
                 {
                     throw new ArgumentException("Please specify a valid AuthorizationKey in the appSettings.json");
@@ -46,13 +50,13 @@ namespace Placebo.Functions
                 _databaseId = _persistingContext.CosmosDatabaseId;
                 if (string.IsNullOrEmpty(_databaseId))
                 {
-                    throw new ArgumentException("Please specify a valid Cosmos Database Id in the appSettings.json");
+                    throw new ArgumentException("Please specify a valid Cosmos Database Id in the settings.json");
                 }
 
                 _containerId = _persistingContext.CosmosContainerId;
                 if (string.IsNullOrEmpty(_containerId))
                 {
-                    throw new ArgumentException("Please specify a valid Cosmos Database Container Id in the appSettings.json");
+                    throw new ArgumentException("Please specify a valid Cosmos Database Container Id in the settings.json");
                 }
                 _cosmosClient = new CosmosClient(endpoint, authKey);
             }

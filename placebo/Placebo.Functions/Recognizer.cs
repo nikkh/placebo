@@ -34,6 +34,7 @@ namespace Placebo.Functions
         private RecognizingContext _recognizingContext;
         const string FUNCTION_NAME = "[Recognizer]";
         private readonly string _dbConnectionString;
+        private readonly string _recognizerServiceBaseUrl;
 
         public Recognizer(IConfiguration config, TelemetryConfiguration telemetryConfig, RecognizingContext processingContext)
         {
@@ -41,6 +42,7 @@ namespace Placebo.Functions
             _recognizingContext = processingContext;
             _telemetryClient = new TelemetryClient(telemetryConfig);
             _dbConnectionString = _config.GetConnectionString("PlaceboDatabase");
+            _recognizerServiceBaseUrl = _config["RecognizerServiceBaseUrl"];
 
         }
 
@@ -112,7 +114,7 @@ namespace Placebo.Functions
                         }
                 }
                 string _apiKey = _config["RecognizerApiKey"];
-                string _baseUrl = _recognizingContext.RecognizerServiceBaseUrl;
+                string _baseUrl = _recognizerServiceBaseUrl;
 
                 var queryString = HttpUtility.ParseQueryString(string.Empty);
                 queryString["includeTextDetails"] = "True";

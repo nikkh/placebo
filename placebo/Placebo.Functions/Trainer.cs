@@ -34,6 +34,7 @@ namespace Placebo.Functions
         const string FUNCTION_NAME = "[Trainer]";
         private static HttpClient _httpClient = new HttpClient();
         private readonly string _dbConnectionString;
+        private readonly string _recognizerServiceBaseUrl;
 
         public Trainer(IConfiguration config, TelemetryConfiguration telemetryConfig, TrainingContext trainingContext)
         {
@@ -41,7 +42,7 @@ namespace Placebo.Functions
             _trainingContext = trainingContext;
             _telemetryClient = new TelemetryClient(telemetryConfig);
             _dbConnectionString = _config.GetConnectionString("PlaceboDatabase");
-
+            _recognizerServiceBaseUrl = _config["RecognizerServiceBaseUrl"];
         }
 
         [FunctionName("Trainer")]
@@ -54,7 +55,7 @@ namespace Placebo.Functions
             {
                 TrainingRequestMessage trm = JsonConvert.DeserializeObject<TrainingRequestMessage>(message);
                 string _apiKey = _config["RecognizerApiKey"];
-                string _baseUrl = _trainingContext.RecognizerServiceBaseUrl;
+                string _baseUrl = _recognizerServiceBaseUrl;
                 
 
                 var uri = $"{_baseUrl}{ParsingConstants.FormRecognizerApiPath}";
