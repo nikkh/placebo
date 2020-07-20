@@ -35,6 +35,7 @@ namespace Placebo.Functions
             builder.Services.AddSingleton(configuration.GetSection("CosmosContext").Get<CosmosContext>());
             builder.Services.AddSingleton(configuration.GetSection("SQLContext").Get<SQLContext>());
             builder.Services.AddScoped<ServiceBusSender>();
+
         }
     }
 }

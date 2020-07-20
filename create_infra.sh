@@ -9,6 +9,10 @@ if [ -z "$LOCATION" ]; then
     export LOCATION=uksouth
 fi
 
+if [ -z "$SQL_ALLOW_MY_IP" ]; then 
+    echo "Set environment variable SQL_ALLOW_MY_IP to your client IP Address to create a firewall rule"
+fi
+
 applicationName=$APPLICATION_NAME
 storageAccountName="$applicationName$RANDOM"
 stagingStorageAccountName="$storageAccountName"staging
@@ -68,7 +72,10 @@ az functionapp create  --name $functionAppName   --storage-account $storageAccou
 # Create a database server (could we use serverless?)
 az sql server create -n $dbServerName -g $resourceGroupName -l $location -u $adminLogin -p $password
 # Configure a firewall rule for the server
-az sql server firewall-rule create -g $resourceGroupName -s $dbServerName -n DevOpsDefault --start-ip-address "0.0.0.0" --end-ip-address "0.0.0.0"
+if [! -z "$SQL_ALLOW_MY_IP" ]; then 
+    az sql server firewall-rule create -g $resourceGroupName -s $dbServerName -n MyIp --start-ip-address $SQL_ALLOW_MY_IP --end-ip-address $SQL_ALLOW_MY_IP
+    export LOCATION=uksouth
+fi
 # Create a sql db
 az sql db create -g $resourceGroupName -s $dbServerName -n $databaseName --service-objective S0
 # Create a Cosmos DB

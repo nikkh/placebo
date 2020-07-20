@@ -29,6 +29,7 @@ namespace Placebo.Functions
             _dbConnectionString = _config.GetConnectionString("PlaceboDatabase");
             _routingContext = routingContext;
             _telemetryClient = new TelemetryClient(telemetryConfig);
+           
 
         }
 
@@ -41,6 +42,8 @@ namespace Placebo.Functions
             log.LogInformation($"{FUNCTION_NAME} function was triggered by receipt of message  - Message:{message}");
             log.LogDebug($"OperationId={operationId}");
             log.LogDebug($"ParentId={parentId}");
+            var utils = new Utils(log, FUNCTION_NAME, _config);
+            utils.CheckAndCreateDatabaseIfNecessary();
             try
             {
 
@@ -73,7 +76,7 @@ namespace Placebo.Functions
                 log.LogDebug($"{FUNCTION_NAME} SourceBlobName is {sourceBlobName}");
                 log.LogDebug($"{FUNCTION_NAME} TargetBlobName is {targetBlobName}");
 
-                Utils utils = new Utils(log, _config["IncomingConnection"], FUNCTION_NAME, _config["PlaceboStaging"] );
+                utils = new Utils(log, _config["IncomingConnection"], FUNCTION_NAME, _config["PlaceboStaging"] );
                 string thumbprint = await utils.GetBlobMD5(sourceBlobName, incomingStorageContainer);
                 Dictionary<string, string> metadata = new Dictionary<string, string>();
                 metadata.Add(ParsingConstants.ThumbprintKey, thumbprint);

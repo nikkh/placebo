@@ -11,6 +11,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Configuration;
+using Microsoft.Extensions.Configuration;
+using System.Data.SqlClient;
 
 namespace Placebo.Functions
 {
@@ -19,6 +22,7 @@ namespace Placebo.Functions
         private readonly ILogger _log;
         private readonly string _mainStorageConnectionString;
         private readonly string _functionName;
+        private readonly string _dbConnectionString;
         private string _stagingStorageConnectionString;
 
         public string StagingStorageConnectionString { get => _stagingStorageConnectionString; set => _stagingStorageConnectionString = value; }
@@ -30,6 +34,15 @@ namespace Placebo.Functions
             _functionName = functionName;
             _mainStorageConnectionString = mainStorageAccountConnectionString;
             StagingStorageConnectionString = stagingStorageAccountConnectionString;
+        }
+
+        public Utils(ILogger log, string functionName, IConfiguration config)
+        {
+             _log = log;
+            _functionName = functionName;
+            _mainStorageConnectionString = config.GetConnectionString("IncomingConnection");
+            StagingStorageConnectionString = config.GetConnectionString("PlaceboStaging");
+            _dbConnectionString = config.GetConnectionString("PlaceboDatabase");
         }
 
         #region blob handling methods
@@ -359,6 +372,98 @@ namespace Placebo.Functions
             return BitConverter.ToString(md5hash).Replace("-", " ");
         }
 
+
+        // make sure database tables are created...
+
+        internal void CheckAndCreateDatabaseIfNecessary()
+        {
+            using (SqlConnection connection = new SqlConnection(_dbConnectionString))
+            {
+                connection.Open();
+                SqlCommand command = connection.CreateCommand();
+                SqlDataReader reader;
+                command.Connection = connection;
+                command.CommandText = "select name from sysobjects where name = 'ModelTraining'";
+                bool modelTrainingTableExist = false;
+                using (reader = command.ExecuteReader())
+                {
+                    if (reader.HasRows)
+                    {
+                        modelTrainingTableExist = true;
+                        _log.LogTrace("Table ModelTraining exists no need to create database tables");
+                    }
+                }
+
+                if (modelTrainingTableExist)
+                {
+                    command.CommandText = "select count(*) from ModelTraining as NumberOfTrainedModels";
+                    Int32 numberOfTrainedModels = (Int32) command.ExecuteScalar();
+                    if (numberOfTrainedModels == 0)
+                    {
+                        _log.LogCritical($"There are no trained models registered in the database");
+                        throw new Exception("There are no trained models registered in the database");
+                    }
+                    return;
+                }
+
+                _log.LogInformation($"Database tables will be created...");
+                SqlTransaction transaction = connection.BeginTransaction("InitializeDatabase");
+                command.Transaction = transaction;
+
+                var commandStr = "If not exists (select name from sysobjects where name = 'ModelTraining')" +
+                 "CREATE TABLE [dbo].[ModelTraining]([Id][int] IDENTITY(1, 1) NOT NULL, [DocumentFormat] [nvarchar](15) NOT NULL, [ModelVersion] [int] NOT NULL, [ModelId] [nvarchar](50) NOT NULL, [CreatedDateTime] [datetime2](7) NOT NULL," +
+                 "[UpdatedDateTime] [datetime2](7) NOT NULL, [BlobSasUrl] [nvarchar](max)NOT NULL, [BlobFolderName] [nvarchar](50) NULL, [IncludeSubfolders] [bit] NOT NULL, [UseLabelFile] [bit] NOT NULL, [AverageModelAccuracy] [decimal](19, 5) NOT NULL," +
+                 "[TrainingDocumentResults] [nvarchar](max)NOT NULL," +
+                 "PRIMARY KEY CLUSTERED ([Id] ASC)WITH(STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON[PRIMARY]) ON[PRIMARY] TEXTIMAGE_ON[PRIMARY]";
+                command.CommandText = commandStr;
+                command.ExecuteNonQuery();
+                _log.LogInformation($"Table ModelTraining was created.");
+
+                commandStr = "If not exists (select name from sysobjects where name = 'Document')" +
+                    "CREATE TABLE[dbo].[Document]([Id][int] IDENTITY(1, 1) NOT NULL, [DocumentNumber] [nvarchar](50) NOT NULL, [TaxDate] [datetime2](7) NULL, [OrderNumber] [nvarchar](50) NULL," +
+                        "[OrderDate] [datetime2](7) NULL, [FileName] [nvarchar](50) NULL, [ShreddingUtcDateTime] [datetime2](7) NOT NULL, [TimeToShred] [bigint] NOT NULL, [RecognizerStatus] [nvarchar](50) NULL," +
+                        "[RecognizerErrors] [nvarchar](50) NULL, [UniqueRunIdentifier] [nvarchar](50) NOT NULL, [TerminalErrorCount] [int] NOT NULL, [WarningErrorCount] [int] NOT NULL, [IsValid] [bit] NOT NULL," +
+                        "[Account] [nvarchar](50) NULL,	[VatAmount] [decimal](19, 5) NULL,	[NetTotal] [decimal](19, 5) NULL, [GrandTotal] [decimal](19, 5) NULL, [PostCode] [nvarchar](10) NULL, [Thumbprint] [nvarchar](50) NULL," +
+                        "[TaxPeriod] [nvarchar](6) NULL, [ModelId] [nvarchar](50) NULL, [ModelVersion] [nvarchar](50) NULL," +
+                        "PRIMARY KEY CLUSTERED ([Id] ASC)WITH(STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON[PRIMARY]) ON[PRIMARY]";
+                command.CommandText = commandStr;
+                command.ExecuteNonQuery();
+                _log.LogInformation($"Table Document was created.");
+
+                commandStr = "If not exists (select name from sysobjects where name = 'DocumentError')" +
+                    "CREATE TABLE [dbo].[DocumentError]([Id][int] IDENTITY(1, 1) NOT NULL, [DocumentId] [int] NOT NULL, [ErrorCode] [nvarchar](10) NULL, [ErrorSeverity] [nvarchar](10) NULL, [ErrorMessage] [nvarchar](max)NULL, " +
+                        "PRIMARY KEY CLUSTERED ([Id] ASC)WITH(STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON[PRIMARY]) ON[PRIMARY] TEXTIMAGE_ON[PRIMARY]";
+                command.CommandText = commandStr;
+                command.ExecuteNonQuery();
+                _log.LogInformation($"Table DocumentErrors was created.");
+
+                commandStr = "If not exists (select name from sysobjects where name = 'DocumentLineItem')" +
+                  "CREATE TABLE[dbo].[DocumentLineItem]([Id][int] IDENTITY(1, 1) NOT NULL, [DocumentId] [int] NOT NULL, [DocumentLineNumber] [nvarchar](5) NOT NULL, [ItemDescription] [nvarchar](max)NULL, [LineQuantity] [nvarchar](50) NULL," +
+                    "[UnitPrice] [decimal](19, 5) NULL, [VATCode] [nvarchar](50) NULL, [NetAmount] [decimal](19, 5) NULL, [CalculatedLineQuantity] [decimal](18, 0) NULL," +
+                    "PRIMARY KEY CLUSTERED ([Id] ASC)WITH(STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON[PRIMARY]) ON[PRIMARY] TEXTIMAGE_ON[PRIMARY]";
+                command.CommandText = commandStr;
+                command.ExecuteNonQuery();
+                _log.LogInformation($"Table DocumentLineItem was created.");
+
+                commandStr = "IF OBJECT_ID('[dbo].[GetModelByDocumentFormat]', 'P') IS NOT NULL DROP PROCEDURE[dbo].[GetModelByDocumentFormat]; ";
+                command.CommandText = commandStr;
+                command.ExecuteNonQuery();
+
+                commandStr = "CREATE PROCEDURE [dbo].[GetModelByDocumentFormat]  @DocumentFormat VARCHAR(15) AS SET NOCOUNT ON; SELECT DocumentFormat, ModelId, ModelVersion, UpdatedDateTime, AverageModelAccuracy" +
+                 " FROM ModelTraining WHERE ModelVersion = (SELECT max(ModelVersion) FROM ModelTraining WHERE DocumentFormat = @DocumentFormat)";
+
+                command.CommandText = commandStr;
+                command.ExecuteNonQuery();
+                _log.LogInformation($"Stored Procedure GetModelByDocumentFormat was created.");
+                
+                transaction.Commit();
+
+
+            }
+            _log.LogCritical($"There are no trained models registered in the database");
+            throw new Exception("There are no trained models registered in the database");
+        }
+ 
         #endregion
 
     }
